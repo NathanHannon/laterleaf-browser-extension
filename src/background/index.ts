@@ -16,7 +16,7 @@ const RESTRICTED_DOMAINS = [
 
 function isRestrictedUrl(url: string | undefined): boolean {
     if (!url) return true; // Default to restricted if no URL
-    
+
     if (RESTRICTED_PREFIXES.some(prefix => url.startsWith(prefix))) {
         return true;
     }
