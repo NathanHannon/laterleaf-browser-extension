@@ -87,7 +87,26 @@ export function extractContent(document: Document): ExtractedContent {
     const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined;
     const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content') || undefined;
     const ogDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content') || undefined;
-    const favicon = document.querySelector('link[rel="icon"]')?.getAttribute('href') || undefined;
+
+    let favicon = document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href') ||
+        document.querySelector('link[rel="icon"]')?.getAttribute('href') ||
+        document.querySelector('link[rel="shortcut icon"]')?.getAttribute('href');
+
+    // Resolve relative URLs for favicon
+    if (favicon) {
+        try {
+            favicon = new URL(favicon, document.baseURI).href;
+        } catch (e) {
+            console.warn('Failed to resolve favicon URL:', e);
+        }
+    } else {
+        // Fallback to default location
+        try {
+            favicon = new URL('/favicon.ico', document.baseURI).href;
+        } catch {
+            // Ignore fallback errors
+        }
+    }
 
     return {
         url: window.location.href,
@@ -101,7 +120,7 @@ export function extractContent(document: Document): ExtractedContent {
             ogImage,
             ogTitle,
             ogDescription,
-            favicon
+            favicon: favicon || undefined
         }
     };
 }
