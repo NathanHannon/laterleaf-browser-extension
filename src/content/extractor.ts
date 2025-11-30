@@ -18,11 +18,23 @@ export interface ExtractedContent {
 }
 
 export function extractContent(document: Document): ExtractedContent {
-    // Clone the document to avoid modifying the live page
-    const documentClone = document.cloneNode(true) as Document;
+    // Serialize and re-parse to avoid Custom Element conflicts (e.g. __CE_registry errors)
+    // and to ensure a clean DOM for Readability.
+    const serializer = new XMLSerializer();
+    const htmlStr = serializer.serializeToString(document);
+    const parser = new DOMParser();
+    const documentClone = parser.parseFromString(htmlStr, 'text/html');
+
+    // Restore base URI for relative link resolution
+    if (!documentClone.querySelector('base')) {
+        const base = documentClone.createElement('base');
+        base.href = document.baseURI;
+        documentClone.head.appendChild(base);
+    }
 
     // Remove AI summaries and other clutter before parsing
     const selectorsToRemove = [
+        // AI Summaries & Google Overviews
         '[class*="google-summary"]', '[id*="google-summary"]',
         '[class*="ai-overview"]', '[id*="ai-overview"]',
         '[aria-label="AI Overview"]',
@@ -32,10 +44,17 @@ export function extractContent(document: Document): ExtractedContent {
         '[data-component="uni-ai-generated-summary"]',
         // Google Blog Author Image (in Hero Menu)
         '[data-analytics-module*="Hero Menu"] figure',
-        // Common ad/nav patterns
+
+        // Common ad/nav/sidebar patterns (Classes)
         '[class*="nav"]', '[class*="menu"]', '[class*="sidebar"]',
         '[class*="banner"]', '[class*="advert"]', '[class*="social"]',
         '[class*="share"]', '[class*="cookie"]', '[class*="popup"]',
+
+        // Common ad/nav/sidebar patterns (IDs)
+        '[id*="nav"]', '[id*="menu"]', '[id*="sidebar"]',
+        '[id*="banner"]', '[id*="ad"]',
+
+        // Structural elements
         'aside', 'nav', 'footer', 'header'
     ];
 
@@ -54,7 +73,15 @@ export function extractContent(document: Document): ExtractedContent {
         throw new Error('Failed to parse article');
     }
 
-    const cleanHtml = DOMPurify.sanitize(article.content || '');
+    const cleanHtml = DOMPurify.sanitize(article.content || '', {
+        USE_PROFILES: { html: true },
+        // More aggressive tag removal to catch custom elements and media
+        FORBID_TAGS: [
+            'img', 'figure', 'picture', 'video', 'audio', 'iframe',
+            'uni-image-full-width', 'uni-youtube-player-article', 'uni-related-content-tout'
+        ],
+        FORBID_ATTR: ['style', 'class', 'id', 'data-component', 'data-analytics-module'], // Also strip data attributes
+    });
 
     // Extract metadata
     const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined;

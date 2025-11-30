@@ -38,8 +38,7 @@
         "cookies"
     ],
     "host_permissions": [
-        "http://localhost:5173/*",
-        "http://localhost:3000/*"
+        "<all_urls>"
     ],
     "content_security_policy": {
         "extension_pages": "script-src 'self' 'wasm-unsafe-eval' http://localhost:5200; object-src 'self'"
