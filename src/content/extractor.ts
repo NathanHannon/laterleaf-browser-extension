@@ -49,13 +49,32 @@ export function extractContent(document: Document): ExtractedContent {
         '[class*="nav"]', '[class*="menu"]', '[class*="sidebar"]',
         '[class*="banner"]', '[class*="advert"]', '[class*="social"]',
         '[class*="share"]', '[class*="cookie"]', '[class*="popup"]',
+        '[class*="subscribe"]', '[class*="newsletter"]',
 
         // Common ad/nav/sidebar patterns (IDs)
         '[id*="nav"]', '[id*="menu"]', '[id*="sidebar"]',
         '[id*="banner"]', '[id*="ad"]',
 
         // Structural elements
-        'aside', 'nav', 'footer', 'header'
+        'aside', 'nav', 'footer', 'header',
+
+        // Reuters / News specific clutter
+        '[data-testid="tab-list"]', // Tabs like Summary/Companies
+        '[data-testid="Title"]', // Sometimes redundant title
+        '[data-testid="Button"]', // Generic buttons
+        '[class*="author-bio"]', // Author bios
+        '[class*="about-author"]',
+        '[class*="read-more"]',
+        '[class*="related-content"]',
+        '[class*="more-stories"]',
+        '[aria-label*="opens new tab" i]', // Link clutter
+        'span[class*="opens-new-tab"]',
+        'figcaption',
+        '[class*="caption"]',
+        '[class*="image-caption"]',
+        '[data-testid="ImageCaption"]',
+        '[data-testid="key-points"]',
+        '[class*="key-points"]',
     ];
 
     selectorsToRemove.forEach(selector => {
@@ -66,12 +85,109 @@ export function extractContent(document: Document): ExtractedContent {
         }
     });
 
+    // Remove "Summary" / "Key Points" sections based on text content
+    const potentialHeaders = Array.from(documentClone.querySelectorAll('h2, h3, h4, h5, h6, strong, b, div, span'));
+    for (const el of potentialHeaders) {
+        const text = el.textContent?.trim();
+        if (text === 'Summary' || text === 'Key Points') {
+            // Case 1: Header followed immediately by a list
+            const next = el.nextElementSibling;
+            if (next && (next.tagName === 'UL' || next.tagName === 'OL')) {
+                el.remove();
+                next.remove();
+                continue;
+            }
+
+            // Case 2: Header inside a container that is primarily a list
+            const parent = el.parentElement;
+            if (parent && parent.textContent && parent.textContent.length < 1000) {
+                if (parent.querySelector('ul, ol')) {
+                    parent.remove();
+                }
+            }
+        }
+    }
+
+    // Handle standalone stock ticker links (e.g. "AAPL.O")
+    // Instead of removing them, we convert their container to a span to ensure they flow inline
+    const links = documentClone.querySelectorAll('a');
+    links.forEach(link => {
+        const text = link.textContent?.trim() || '';
+        // Matches tickers like AAPL.O, (AAPL.O), or similar patterns
+        if (/^\(?[A-Z]{2,6}\.[A-Z]{1,3}\)?$/.test(text)) {
+            // Check if it's isolated (parent has no other meaningful text)
+            const parent = link.parentElement;
+            if (parent) {
+                const parentText = parent.textContent?.trim() || '';
+                // If the parent's text is identical to the link's text (ignoring whitespace), it's isolated.
+                if (parentText === text) {
+                    // Convert block parents to spans to force inline behavior
+                    if (['DIV', 'P', 'SECTION', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(parent.tagName)) {
+                        const span = documentClone.createElement('span');
+                        span.innerHTML = parent.innerHTML;
+                        parent.replaceWith(span);
+                    }
+                }
+            }
+        }
+    });
+
+    // Text-based cleaning using TreeWalker for better performance and precision
+    const walker = documentClone.createTreeWalker(documentClone.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+        const text = node.textContent || '';
+
+        // 1. "Opens new tab" variations (Case insensitive)
+        if (text.match(/opens new tab/i)) {
+            node.textContent = text.replace(/,?\s*opens new tab/gi, '');
+        }
+
+        // 2. "Purchase Licensing Rights"
+        if (text.includes('Purchase Licensing Rights')) {
+            node.textContent = node.textContent?.replace(/Purchase Licensing Rights/g, '') || '';
+        }
+
+        // 3. Image counters/captions: "Item 1 of 3", "[1/3]"
+        if (text.match(/^(Item\s+\d+\s+of\s+\d+|\[\d+\/\d+\])/i) && text.length < 500) {
+            node.textContent = '';
+        }
+
+        // 4. "Companies" header (standalone text)
+        if (text.trim() === 'Companies') {
+            node.textContent = '';
+        }
+    }
+
     const reader = new Readability(documentClone);
     const article = reader.parse();
 
     if (!article) {
         throw new Error('Failed to parse article');
     }
+
+    // Post-processing: Remove common news footers (Reuters, etc.)
+    // We do this on the parsed content to catch things Readability missed
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = article.content || '';
+    const paragraphs = Array.from(tempDiv.querySelectorAll('p, div'));
+
+    // Check the last few elements for footer text
+    // Reuters: "Reporting by X; Editing by Y", "Our Standards: The Thomson Reuters Trust Principles."
+    for (let i = paragraphs.length - 1; i >= Math.max(0, paragraphs.length - 5); i--) {
+        const el = paragraphs[i];
+        const text = el.textContent || '';
+
+        if (text.includes('Reporting by') ||
+            text.includes('Editing by') ||
+            text.includes('Our Standards:') ||
+            text.includes('The Thomson Reuters Trust Principles') ||
+            text.includes('All quotes delayed a minimum of 15 minutes') ||
+            text.includes('Copyright') && text.length < 100) {
+            el.remove();
+        }
+    }
+    article.content = tempDiv.innerHTML;
 
     const cleanHtml = DOMPurify.sanitize(article.content || '', {
         USE_PROFILES: { html: true },
