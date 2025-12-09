@@ -9,6 +9,7 @@ export interface ExtractedContent {
     excerpt: string;
     siteName: string;
     imageUrl?: string;
+    hasContent: boolean;
     metadata: {
         ogImage?: string;
         ogTitle?: string;
@@ -18,6 +19,46 @@ export interface ExtractedContent {
 }
 
 export function extractContent(document: Document): ExtractedContent {
+    // --- PAYWALL DETECTION (Pre-Parsing) ---
+    // Check for common paywall indicators before we clean the DOM
+    const paywallKeywords = [
+        'subscribe to read',
+        'subscribe for full access',
+        'log in to continue',
+        'already a subscriber',
+        'you have reached your limit',
+        'this article is for subscribers only',
+        'join now to read',
+        'create an account to read',
+        'start your free trial',
+        'unlock this article'
+    ];
+
+    // Check for paywall classes/IDs
+    const paywallSelectors = [
+        '[class*="paywall"]',
+        '[id*="paywall"]',
+        '[class*="gate"]',
+        '[id*="gate"]',
+        '[class*="subscriber-only"]',
+        '[class*="premium-content"]'
+    ];
+
+    let potentialPaywallDetected = false;
+
+    // 1. Check for explicit paywall elements
+    if (document.querySelector(paywallSelectors.join(','))) {
+        potentialPaywallDetected = true;
+    }
+
+    // 2. Check for keywords in the visible text of the body (rough check)
+    const bodyText = document.body.innerText.toLowerCase();
+    // Only check the last 20% of the text or the last 1000 chars to avoid false positives in headers
+    const footerText = bodyText.slice(-1000);
+    if (paywallKeywords.some(keyword => footerText.includes(keyword))) {
+        potentialPaywallDetected = true;
+    }
+
     // Serialize and re-parse to avoid Custom Element conflicts (e.g. __CE_registry errors)
     // and to ensure a clean DOM for Readability.
     const serializer = new XMLSerializer();
@@ -224,6 +265,28 @@ export function extractContent(document: Document): ExtractedContent {
         }
     }
 
+    // --- PAYWALL CONFIRMATION (Post-Parsing) ---
+    // Determine if we actually have content
+    let hasContent = true;
+    const contentLength = article.textContent?.length || 0;
+
+    // Heuristic 1: Very short content + Paywall detected
+    if (contentLength < 1000 && potentialPaywallDetected) {
+        hasContent = false;
+    }
+
+    // Heuristic 2: Extremely short content (likely just a snippet) regardless of paywall detection
+    if (contentLength < 300) {
+        hasContent = false;
+    }
+
+    // Heuristic 3: Check the extracted text itself for paywall keywords (Readability might have kept them)
+    const extractedText = article.textContent?.toLowerCase() || '';
+    const lastParagraph = extractedText.slice(-500);
+    if (paywallKeywords.some(keyword => lastParagraph.includes(keyword))) {
+        hasContent = false;
+    }
+
     return {
         url: window.location.href,
         title: article.title || '',
@@ -232,6 +295,7 @@ export function extractContent(document: Document): ExtractedContent {
         excerpt: article.excerpt || '',
         siteName: article.siteName || '',
         imageUrl: ogImage,
+        hasContent,
         metadata: {
             ogImage,
             ogTitle,
