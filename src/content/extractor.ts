@@ -20,6 +20,11 @@ export interface ExtractedContent {
 
 export function extractContent(document: Document): ExtractedContent {
     // --- PAYWALL DETECTION (Pre-Parsing) ---
+    // 0. Whitelist Check
+    const safeDomains = ['blog.google', 'google.com', 'youtube.com', 'wikipedia.org', 'github.com'];
+    const hostname = window.location.hostname;
+    const isWhitelisted = safeDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+
     // Check for common paywall indicators before we clean the DOM
     const paywallKeywords = [
         'subscribe to read',
@@ -270,21 +275,24 @@ export function extractContent(document: Document): ExtractedContent {
     let hasContent = true;
     const contentLength = article.textContent?.length || 0;
 
-    // Heuristic 1: Very short content + Paywall detected
-    if (contentLength < 1000 && potentialPaywallDetected) {
-        hasContent = false;
-    }
+    // Skip paywall heuristics if whitelisted
+    if (!isWhitelisted) {
+        // Heuristic 1: Very short content + Paywall detected
+        if (contentLength < 1000 && potentialPaywallDetected) {
+            hasContent = false;
+        }
 
-    // Heuristic 2: Extremely short content (likely just a snippet) regardless of paywall detection
-    if (contentLength < 300) {
-        hasContent = false;
-    }
+        // Heuristic 2: Extremely short content (likely just a snippet) regardless of paywall detection
+        if (contentLength < 300) {
+            hasContent = false;
+        }
 
-    // Heuristic 3: Check the extracted text itself for paywall keywords (Readability might have kept them)
-    const extractedText = article.textContent?.toLowerCase() || '';
-    const lastParagraph = extractedText.slice(-500);
-    if (paywallKeywords.some(keyword => lastParagraph.includes(keyword))) {
-        hasContent = false;
+        // Heuristic 3: Check the extracted text itself for paywall keywords (Readability might have kept them)
+        const extractedText = article.textContent?.toLowerCase() || '';
+        const lastParagraph = extractedText.slice(-500);
+        if (paywallKeywords.some(keyword => lastParagraph.includes(keyword))) {
+            hasContent = false;
+        }
     }
 
     return {
