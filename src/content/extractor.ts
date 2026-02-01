@@ -36,7 +36,13 @@ export function extractContent(document: Document): ExtractedContent {
         'join now to read',
         'create an account to read',
         'start your free trial',
-        'unlock this article'
+        'unlock this article',
+        // NYT and other specific ones
+        'subscribe to the times',
+        'read as many articles as you like',
+        'create an account to read', // specific
+        'register to keep reading', // specific
+        'subscribe to continue' // specific
     ];
 
     // Check for paywall classes/IDs
@@ -50,6 +56,7 @@ export function extractContent(document: Document): ExtractedContent {
     ];
 
     let potentialPaywallDetected = false;
+    let expectedWordCount = 0;
 
     // 1. Check for explicit paywall elements
     if (document.querySelector(paywallSelectors.join(','))) {
@@ -62,6 +69,58 @@ export function extractContent(document: Document): ExtractedContent {
     const footerText = bodyText.slice(-1000);
     if (paywallKeywords.some(keyword => footerText.includes(keyword))) {
         potentialPaywallDetected = true;
+    }
+
+    // 3. Check JSON-LD for "isAccessibleForFree": false
+    // Schema.org standard for paywalled content
+    try {
+        const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+        jsonLdScripts.forEach(script => {
+            if (potentialPaywallDetected) return;
+            if (!script.textContent) return;
+
+            try {
+                const data = JSON.parse(script.textContent);
+                const items = Array.isArray(data) ? data : [data];
+
+                for (const item of items) {
+                    // Capture word count if available
+                    if (item['wordCount']) {
+                        const count = parseInt(item['wordCount'], 10);
+                        if (!isNaN(count) && count > expectedWordCount) {
+                            expectedWordCount = count;
+                        }
+                    }
+
+                    // Check for explicit false value
+                    const isNotFree = item['isAccessibleForFree'] === false || item['isAccessibleForFree'] === 'False' || item['isAccessibleForFree'] === 'false';
+
+                    if (isNotFree) {
+                        // If it's not free, we check if the defined paywall element is actually present in the DOM.
+                        // If the user is logged in, this element should be absent.
+                        if (item['hasPart']) {
+                            const parts = Array.isArray(item['hasPart']) ? item['hasPart'] : [item['hasPart']];
+                            for (const part of parts) {
+                                if (part['cssSelector']) {
+                                    const el = document.querySelector(part['cssSelector']) as HTMLElement;
+                                    // Only trigger if the element exists AND is visible (not hidden by CSS)
+                                    // offsetParent checks if it's being rendered
+                                    if (el && el.offsetParent !== null) {
+                                        potentialPaywallDetected = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (potentialPaywallDetected) break;
+                }
+            } catch {
+                // Ignore invalid JSON
+            }
+        });
+    } catch (e) {
+        console.warn('Error checking JSON-LD:', e);
     }
 
     // Serialize and re-parse to avoid Custom Element conflicts (e.g. __CE_registry errors)
@@ -275,8 +334,18 @@ export function extractContent(document: Document): ExtractedContent {
     let hasContent = true;
     const contentLength = article.textContent?.length || 0;
 
+    // Calculate word count of extracted text
+    const cleanText = article.textContent || '';
+    const actualWordCount = cleanText.split(/\s+/).length;
+
     // Skip paywall heuristics if whitelisted
     if (!isWhitelisted) {
+        // Heuristic 0: Word Count Ratio Validation (The "Teaser Check")
+        // If metadata promised >500 words and we captured <30% of that, it's a teaser.
+        if (expectedWordCount > 500 && actualWordCount < (expectedWordCount * 0.3)) {
+            hasContent = false;
+        }
+
         // Heuristic 1: Very short content + Paywall detected
         if (contentLength < 1000 && potentialPaywallDetected) {
             hasContent = false;
@@ -289,7 +358,9 @@ export function extractContent(document: Document): ExtractedContent {
 
         // Heuristic 3: Check the extracted text itself for paywall keywords (Readability might have kept them)
         const extractedText = article.textContent?.toLowerCase() || '';
-        const lastParagraph = extractedText.slice(-500);
+        // Check the last 1500 chars to catch paywalls buried under "Related Articles" lists
+        const lastParagraph = extractedText.slice(-1500);
+
         if (paywallKeywords.some(keyword => lastParagraph.includes(keyword))) {
             hasContent = false;
         }
