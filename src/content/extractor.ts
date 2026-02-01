@@ -7,6 +7,8 @@ export interface ExtractedContent {
     content: string;
     contentHtml: string;
     excerpt: string;
+    author?: string;
+    publishedTime?: string;
     siteName: string;
     imageUrl?: string;
     hasContent: boolean;
@@ -57,6 +59,12 @@ export function extractContent(document: Document): ExtractedContent {
 
     let potentialPaywallDetected = false;
     let expectedWordCount = 0;
+    
+    // JSON-LD captured fields
+    let jsonLdBody = '';
+    let jsonLdDate = '';
+    let jsonLdAuthor = '';
+    let jsonLdDescription = '';
 
     // 1. Check for explicit paywall elements
     if (document.querySelector(paywallSelectors.join(','))) {
@@ -76,7 +84,6 @@ export function extractContent(document: Document): ExtractedContent {
     try {
         const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
         jsonLdScripts.forEach(script => {
-            if (potentialPaywallDetected) return;
             if (!script.textContent) return;
 
             try {
@@ -84,6 +91,18 @@ export function extractContent(document: Document): ExtractedContent {
                 const items = Array.isArray(data) ? data : [data];
 
                 for (const item of items) {
+                    // Capture nice-to-have metadata while parsing
+                    if (item['articleBody']) jsonLdBody = item['articleBody'];
+                    if (item['datePublished']) jsonLdDate = item['datePublished'];
+                    if (item['description']) jsonLdDescription = item['description'];
+                    if (!jsonLdAuthor && item['author']) {
+                        if (typeof item['author'] === 'string') jsonLdAuthor = item['author'];
+                        else if (item['author'].name) jsonLdAuthor = item['author'].name;
+                        else if (Array.isArray(item['author']) && item['author'][0]?.name) jsonLdAuthor = item['author'][0].name;
+                    }
+
+                    if (potentialPaywallDetected) continue;
+
                     // Capture word count if available
                     if (item['wordCount']) {
                         const count = parseInt(item['wordCount'], 10);
@@ -334,14 +353,28 @@ export function extractContent(document: Document): ExtractedContent {
     let hasContent = true;
     const contentLength = article.textContent?.length || 0;
 
+    // Use JSON-LD description as excerpt fallback
+    if (!article.excerpt && jsonLdDescription) {
+        article.excerpt = jsonLdDescription;
+    }
+
+    // Use JSON-LD body if it provides significantly better quality text than the DOM extraction
+    // This is common in "soft" paywalls where the DOM is truncated but metadata is full for SEO.
+    // SAFETY: We ONLY does this if we haven't detected a paywall. If the user is blocked,
+    // we must respect that and NOT grab the hidden SEO text.
+    let finalContent = article.textContent || '';
+    if (!potentialPaywallDetected && jsonLdBody && jsonLdBody.length > finalContent.length + 500) {
+        finalContent = jsonLdBody;
+    }
+
     // Calculate word count of extracted text
-    const cleanText = article.textContent || '';
+    const cleanText = finalContent;
     const actualWordCount = cleanText.split(/\s+/).length;
 
     // Skip paywall heuristics if whitelisted
     if (!isWhitelisted) {
         // Heuristic 0: Word Count Ratio Validation (The "Teaser Check")
-        // If metadata promised >500 words and we captured <30% of that, it's a teaser.
+        // If metadata promised >500 words and we capture <30% of that, it's a teaser.
         if (expectedWordCount > 500 && actualWordCount < (expectedWordCount * 0.3)) {
             hasContent = false;
         }
@@ -357,7 +390,7 @@ export function extractContent(document: Document): ExtractedContent {
         }
 
         // Heuristic 3: Check the extracted text itself for paywall keywords (Readability might have kept them)
-        const extractedText = article.textContent?.toLowerCase() || '';
+        const extractedText = finalContent.toLowerCase();
         // Check the last 1500 chars to catch paywalls buried under "Related Articles" lists
         const lastParagraph = extractedText.slice(-1500);
 
@@ -369,16 +402,18 @@ export function extractContent(document: Document): ExtractedContent {
     return {
         url: window.location.href,
         title: article.title || '',
-        content: article.textContent || '',
+        content: finalContent,
         contentHtml: cleanHtml,
         excerpt: article.excerpt || '',
         siteName: article.siteName || '',
+        author: jsonLdAuthor || article.byline || undefined,
+        publishedTime: jsonLdDate || article.publishedTime || undefined,
         imageUrl: ogImage,
         hasContent,
         metadata: {
             ogImage,
             ogTitle,
-            ogDescription,
+            ogDescription: ogDescription || jsonLdDescription,
             favicon: favicon || undefined
         }
     };

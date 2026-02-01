@@ -1,6 +1,13 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-export async function saveArticle(data: any, token: string) {
+interface SaveArticleData {
+    url: string;
+    title?: string;
+    html?: string;
+    [key: string]: unknown;
+}
+
+export async function saveArticle(data: SaveArticleData, token: string) {
     console.log('📡 [API] saveArticle called with URL:', data.url);
     console.log('📡 [API] Target Endpoint:', `${API_URL}/articles/from-extension`);
 
