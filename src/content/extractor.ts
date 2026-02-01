@@ -59,7 +59,7 @@ export function extractContent(document: Document): ExtractedContent {
 
     let potentialPaywallDetected = false;
     let expectedWordCount = 0;
-    
+
     // JSON-LD captured fields
     let jsonLdBody = '';
     let jsonLdDate = '';
