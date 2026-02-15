@@ -6,8 +6,9 @@ import './Popup.scss'
 interface ArticleData {
   title: string;
   excerpt?: string;
-  url?: string;
+  url: string;
   content?: string;
+  [key: string]: any;
 }
 
 type ExtractionResponse =
