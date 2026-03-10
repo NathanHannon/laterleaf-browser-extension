@@ -78,15 +78,20 @@ export function extractContent(document: Document): ExtractedContent {
         'read as many articles as you like',
         'create an account to read', // specific
         'register to keep reading', // specific
-        'subscribe to continue' // specific
+        'subscribe to continue', // specific
+        'to continue reading', // metered paywalls (e.g. Axios)
+        'sign up for',
     ];
 
     // Check for paywall classes/IDs
     const paywallSelectors = [
         '[class*="paywall"]',
         '[id*="paywall"]',
-        '[class*="gate"]',
-        '[id*="gate"]',
+        '[class*="subscription-gate"]',
+        '[class*="paywall-gate"]',
+        '[class*="metered-gate"]',
+        '[id*="subscription-gate"]',
+        '[id*="paywall-gate"]',
         '[class*="subscriber-only"]',
         '[class*="premium-content"]'
     ];
