@@ -42,21 +42,14 @@ function Popup() {
 
         // Send message to content script to extract content
         console.log('🚀 [Popup] Sending EXTRACT_CONTENT message to tab', activeTab.id);
-        chrome.tabs.sendMessage(activeTab.id, { action: 'EXTRACT_CONTENT' }, (response: ExtractionResponse | undefined) => {
-          console.log('🚀 [Popup] Received response from content script:', response);
-
+        chrome.tabs.sendMessage(activeTab.id, { action: 'EXTRACT_CONTENT' }, (response) => {
           if (chrome.runtime.lastError) {
-            console.error('❌ [Popup] Runtime error:', chrome.runtime.lastError);
-            setStatus('error');
-
-            const msg = chrome.runtime.lastError.message;
-            if (msg && msg.includes("Receiving end does not exist")) {
-              setErrorMessage('Please refresh this page to enable the extension.');
-            } else {
-              setErrorMessage('Could not connect to page. Try reloading.');
-            }
+            // Just catch the error quietly so the console doesn't spam Red
+            console.warn("Content script not ready or worker asleep.", chrome.runtime.lastError);
             return;
           }
+
+          console.log('🚀 [Popup] Received response from content script:', response);
 
           if (response && response.success) {
             console.log('✅ [Popup] Extraction successful:', response.data.title);
