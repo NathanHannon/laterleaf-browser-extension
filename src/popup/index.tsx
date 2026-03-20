@@ -5,6 +5,7 @@ import '../assets/styles/main.scss'
 import Popup from './Popup'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const SYNC_HOST = import.meta.env.VITE_CLERK_SYNC_HOST
 
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key")
@@ -12,7 +13,10 @@ if (!PUBLISHABLE_KEY) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
+      {...(SYNC_HOST ? { syncHost: SYNC_HOST } : {})}
+    >
       <Popup />
     </ClerkProvider>
   </StrictMode>,
