@@ -32,3 +32,17 @@ export async function saveArticle(data: SaveArticleData, token: string) {
     console.log('✅ [API] Success response:', result);
     return result;
 }
+
+export async function getUserPreferences(token: string) {
+    const response = await fetch(`${API_URL}/users/me`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch preferences');
+    }
+
+    return response.json();
+}

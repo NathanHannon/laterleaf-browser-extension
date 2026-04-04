@@ -25,8 +25,120 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* LaterLeaf Appearance Modes */
+[data-appearance='light'] {
+  --bg-color: #ffffff;
+  --text-color: #0f766e;
+  --text-secondary: #4b5563;
+  --border-color: #e5e7eb;
+  --primary-color: #22c55e;
+  --primary-hover: #16a34a;
+  --success-color: #059669;
+  --error-color: #dc2626;
+  --card-bg: #ffffff;
+  --button-secondary-bg: #f3f4f6;
+  --button-secondary-border: #d1d5db;
+  --button-secondary-text: #374151;
+}
+
+[data-appearance='dark'] {
+  --bg-color: #111827;
+  --text-color: #ffffff;
+  --text-secondary: #9ca3af;
+  --border-color: #374151;
+  --primary-color: #22c55e;
+  --primary-hover: #16a34a;
+  --success-color: #34d399;
+  --error-color: #f87171;
+  --card-bg: #1f2937;
+  --button-secondary-bg: #374151;
+  --button-secondary-border: #4b5563;
+  --button-secondary-text: #e5e7eb;
+}
+
+/* LaterLeaf Themes */
+[data-theme='cherry-blossom'] {
+  --primary-color: #ff9fb2;
+  --primary-hover: #ff7f96;
+
+  &[data-appearance="light"] {
+      --bg-color: #fff5f7;
+      --text-color: #3b2f2f;
+      --text-secondary: #7a6b6b;
+      --border-color: #f7d9df;
+  }
+
+  &[data-appearance="dark"] {
+      --bg-color: #261417;
+      --card-bg: #351d21;
+      --border-color: #4d2f33;
+      --text-color: #ffd1dc;
+      --text-secondary: #cea5ae;
+  }
+}
+
+[data-theme='midnight-ocean'] {
+  --primary-color: #06b6d4;
+  --primary-hover: #0891b2;
+
+  &[data-appearance="light"] {
+      --bg-color: #eff6ff;
+      --text-color: #1e3a8a;
+      --text-secondary: #475569;
+      --border-color: #bfdbfe;
+  }
+
+  &[data-appearance="dark"] {
+      --bg-color: #020617;
+      --card-bg: #0f172a;
+      --border-color: #1e293b;
+      --text-color: #f1f5f9;
+      --text-secondary: #94a3b8;
+  }
+}
+
+[data-theme='forest-moss'] {
+  --primary-color: #65a30d;
+  --primary-hover: #4d7c0f;
+
+  &[data-appearance="light"] {
+      --bg-color: #f7f9f7;
+      --text-color: #1a2e05;
+      --text-secondary: #525252;
+      --border-color: #dcfce7;
+  }
+
+  &[data-appearance="dark"] {
+      --bg-color: #0a0a0a;
+      --card-bg: #141c0a;
+      --border-color: #2d3a24;
+      --text-color: #ecfccb;
+      --text-secondary: #a3a3a3;
+  }
+}
+
+[data-theme='retro-archive'] {
+  --primary-color: #c2410c;
+  --primary-hover: #9a3412;
+
+  &[data-appearance="light"] {
+      --bg-color: #fdf6e3;
+      --text-color: #073642;
+      --text-secondary: #586e75;
+      --border-color: #e0d9c4;
+  }
+
+  &[data-appearance="dark"] {
+      --bg-color: #002b36;
+      --card-bg: #073642;
+      --border-color: #586e75;
+      --text-color: #93a1a1;
+      --text-secondary: #657b83;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-appearance]) {
     --bg-color: #111827;
     --text-color: #f9fafb;
     --text-secondary: #9ca3af;

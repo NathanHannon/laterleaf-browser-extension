@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth, SignIn, UserButton } from '@clerk/chrome-extension'
-import { saveArticle } from '../lib/api'
+import { saveArticle, getUserPreferences } from '../lib/api'
 import './Popup.scss'
 
 interface ArticleData {
@@ -20,6 +20,28 @@ function Popup() {
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [articleData, setArticleData] = useState<ArticleData | null>(null)
+
+  useEffect(() => {
+    async function applyPreferences() {
+      if (userId) {
+        try {
+          const token = await getToken();
+          if (token) {
+            const user = await getUserPreferences(token);
+            if (user) {
+              const appearance = user.preferredAppearance || 'light';
+              const theme = user.preferredTheme || 'default';
+              document.documentElement.setAttribute('data-appearance', appearance);
+              document.documentElement.setAttribute('data-theme', theme);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load user preferences', err);
+        }
+      }
+    }
+    applyPreferences();
+  }, [userId, getToken]);
 
   useEffect(() => {
     console.log('🚀 [Popup] Mounted, querying active tab...');
