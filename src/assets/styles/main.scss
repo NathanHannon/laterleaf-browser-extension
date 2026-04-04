@@ -117,23 +117,43 @@
   }
 }
 
-[data-theme='retro-archive'] {
-  --primary-color: #c2410c;
-  --primary-hover: #9a3412;
+[data-theme='nord-arctic'] {
+  --primary-color: #88c0d0; // Nord Frost Blue
+  --primary-hover: #81a1c1;
 
   &[data-appearance="light"] {
-      --bg-color: #fdf6e3;
-      --text-color: #073642;
-      --text-secondary: #586e75;
-      --border-color: #e0d9c4;
+      --bg-color: #eceff4;
+      --text-color: #2e3440;
+      --text-secondary: #4c566a;
+      --border-color: #d8dee9;
   }
 
   &[data-appearance="dark"] {
-      --bg-color: #002b36;
-      --card-bg: #073642;
-      --border-color: #586e75;
-      --text-color: #93a1a1;
-      --text-secondary: #657b83;
+      --bg-color: #2e3440;
+      --card-bg: #3b4252;
+      --border-color: #4c566a;
+      --text-color: #d8dee9;
+      --text-secondary: #a3be8c;
+  }
+}
+
+[data-theme='neon-nights'] {
+  --primary-color: #ff00ff; // Neon Pink
+  --primary-hover: #cc00cc;
+
+  &[data-appearance="light"] {
+      --bg-color: #fce7f3;
+      --text-color: #4c1d95;
+      --text-secondary: #7e22ce;
+      --border-color: #f5d0fe;
+  }
+
+  &[data-appearance="dark"] {
+      --bg-color: #0d0221;
+      --card-bg: #1a0b2e;
+      --border-color: #2d005d;
+      --text-color: #fdf4ff;
+      --text-secondary: #f0abfc;
   }
 }
 
