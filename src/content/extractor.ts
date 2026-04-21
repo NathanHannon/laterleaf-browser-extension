@@ -322,6 +322,25 @@ export function extractContent(document: Document): ExtractedContent {
         }
     }
 
+    // Convert leaf <div> elements to <p> elements.
+    // Some sites (e.g. Apple Newsroom) use <div> instead of <p> for paragraphs,
+    // which Readability.js cannot score reliably. This conversion fixes that.
+    const BLOCK_TAGS = new Set([
+        'DIV', 'P', 'SECTION', 'ARTICLE', 'BLOCKQUOTE', 'TABLE',
+        'UL', 'OL', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+        'HEADER', 'FOOTER', 'NAV', 'ASIDE', 'FIGURE', 'FIGCAPTION',
+        'PRE', 'FORM', 'FIELDSET', 'DL', 'DT', 'DD',
+    ]);
+    const allDivs = Array.from(documentClone.querySelectorAll('div'));
+    for (const div of allDivs) {
+        const hasBlockChild = Array.from(div.children).some(child => BLOCK_TAGS.has(child.tagName));
+        if (hasBlockChild) continue;
+        if ((div.textContent?.trim().length ?? 0) < 25) continue;
+        const p = documentClone.createElement('p');
+        p.innerHTML = div.innerHTML;
+        div.replaceWith(p);
+    }
+
     const reader = new Readability(documentClone);
     const article = reader.parse();
 
