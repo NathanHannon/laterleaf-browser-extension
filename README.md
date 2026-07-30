@@ -43,5 +43,10 @@ In this mode, Vite compiles your code into static HTML, JS, and CSS files.
 ## Commands
 
 - `npm run dev`: Start dev server with HMR.
+- `npm run dev:firefox`: Start Firefox-targeted dev build.
+- `npm run dev:safari`: Start Safari-targeted dev build.
 - `npm run build`: Build for production.
+- `npm run build:firefox`: Build Firefox output into `dist/firefox`.
+- `npm run build:safari`: Build Safari output into `dist/safari`.
+- `npm run build:all`: Build Chrome, Firefox, and Safari outputs.
 
