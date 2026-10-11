@@ -1,4 +1,17 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const legacyApiUrl = import.meta.env.VITE_API_URL as string | undefined;
+const legacyApiVersion = legacyApiUrl?.match(/\/(v\d+)\/?$/)?.[1];
+const apiBaseUrl =
+    import.meta.env.VITE_API_BASE_URL ||
+    legacyApiUrl?.replace(/\/v\d+\/?$/, '') ||
+    'http://localhost:3000/api';
+const apiVersion = import.meta.env.VITE_API_URL_VERSION || legacyApiVersion || 'v1';
+
+export function apiUrl(path: string, version = apiVersion): string {
+    const normalizedBaseUrl = apiBaseUrl.replace(/\/+$/, '');
+    const normalizedVersion = version.replace(/^\/+|\/+$/g, '');
+    const normalizedPath = path.replace(/^\/+/, '');
+    return `${normalizedBaseUrl}/${normalizedVersion}/${normalizedPath}`;
+}
 
 interface SaveArticleData {
     url: string;
@@ -9,9 +22,9 @@ interface SaveArticleData {
 
 export async function saveArticle(data: SaveArticleData, token: string) {
     console.log('📡 [API] saveArticle called with URL:', data.url);
-    console.log('📡 [API] Target Endpoint:', `${API_URL}/articles/from-extension`);
+    console.log('📡 [API] Target Endpoint:', apiUrl('/articles/from-extension'));
 
-    const response = await fetch(`${API_URL}/articles/from-extension`, {
+    const response = await fetch(apiUrl('/articles/from-extension'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -34,7 +47,7 @@ export async function saveArticle(data: SaveArticleData, token: string) {
 }
 
 export async function getUserPreferences(token: string) {
-    const response = await fetch(`${API_URL}/users/me`, {
+    const response = await fetch(apiUrl('/users/me'), {
         headers: {
             'Authorization': `Bearer ${token}`,
         },

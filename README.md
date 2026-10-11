@@ -36,8 +36,9 @@ In this mode, Vite compiles your code into static HTML, JS, and CSS files.
 1. `npm install`
 2. Create `.env` file:
    ```
-   VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-   VITE_API_URL=http://localhost:3000/api
+  VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+  VITE_API_BASE_URL=http://localhost:3000/api
+  VITE_API_URL_VERSION=v1
    ```
 
 ## Commands
