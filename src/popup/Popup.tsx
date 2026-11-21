@@ -3,14 +3,16 @@ import { useAuth, SignIn, UserButton } from '@clerk/chrome-extension'
 import { saveArticle, getUserPreferences } from '../lib/api'
 import './Popup.scss'
 
-function BrandLogo() {
+const APP_URL = (import.meta.env.VITE_APP_URL as string | undefined) || 'https://app.laterleaf.com';
+
+function BrandLogo({ size = 24 }: { size?: number }) {
   const gradientId = useId();
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
-      width="24"
-      height="24"
+      width={size}
+      height={size}
       fill="none"
       className="brand-logo"
       role="img"
@@ -206,8 +208,19 @@ function Popup() {
 
         {status === 'saved' && (
           <div className="success-message">
-            <h3>Saved!</h3>
+            <div className="success-badge">
+              <BrandLogo size={34} />
+            </div>
+            <h3>Saved to LaterLeaf</h3>
             <p>Article has been added to your library.</p>
+            <a
+              href={APP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="open-library-link"
+            >
+              Open Library →
+            </a>
           </div>
         )}
 
