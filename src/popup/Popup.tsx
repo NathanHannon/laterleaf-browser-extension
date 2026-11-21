@@ -1,7 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { useAuth, SignIn, UserButton } from '@clerk/chrome-extension'
 import { saveArticle, getUserPreferences } from '../lib/api'
 import './Popup.scss'
+
+function BrandLogo() {
+  const gradientId = useId();
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 64 64"
+      width="24"
+      height="24"
+      fill="none"
+      className="brand-logo"
+      role="img"
+      aria-label="LaterLeaf logo"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="15" y1="56" x2="50" y2="8" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="var(--primary-hover, #15803d)" />
+          <stop offset="55%" stopColor="var(--primary-color, #22c55e)" />
+          <stop offset="100%" stopColor="var(--primary-color, #4ade80)" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M 15 55 L 15 31 C 15 15, 29 7, 48 7 C 49.5 17, 49 25, 49 33 L 49 55 C 49 56.8, 46.9 57.8, 45.5 56.6 L 32 45.5 L 18.5 56.6 C 17.1 57.8, 15 56.8, 15 55 Z"
+        fill={`url(#${gradientId})`}
+      />
+      <path
+        d="M 48 7 C 37 15, 30 26, 28 38 L 32 41 L 49 55 L 49 33 C 49 25, 49.5 17, 48 7 Z"
+        fill="#ffffff"
+        fillOpacity="0.16"
+      />
+      <path d="M 24 38 C 27 27, 33 19, 41 14" stroke="#052e16" strokeWidth="3.6" strokeLinecap="round" />
+      <path d="M 29 26 L 25.5 20.5" stroke="#052e16" strokeWidth="2.8" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 interface ArticleData {
   title: string;
@@ -130,7 +165,10 @@ function Popup() {
   if (!userId) {
     return (
       <div className="popup-container">
-        <h2>LaterLeaf</h2>
+        <div className="popup-brand">
+          <BrandLogo />
+          <h2>LaterLeaf</h2>
+        </div>
         <p>Please sign in to save articles.</p>
         <SignIn />
       </div>
@@ -140,7 +178,10 @@ function Popup() {
   return (
     <div className="popup-container">
       <header>
-        <h2>LaterLeaf</h2>
+        <div className="popup-brand">
+          <BrandLogo />
+          <h2>LaterLeaf</h2>
+        </div>
         <UserButton />
       </header>
 
