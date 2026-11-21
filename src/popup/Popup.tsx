@@ -133,28 +133,21 @@ function Popup() {
   }, []);
 
   const handleSave = async () => {
-    console.log('💾 [Popup] handleSave clicked');
     if (!articleData) {
-      console.warn('⚠️ [Popup] No article data to save');
       return;
     }
 
     try {
       setStatus('saving');
-      console.log('🔐 [Popup] Getting auth token...');
       const token = await getToken();
       if (!token) {
-        console.error('❌ [Popup] No token available');
         throw new Error('Not authenticated');
       }
-      console.log('🔐 [Popup] Token received (first 10 chars):', token.substring(0, 10) + '...');
 
-      console.log('📡 [Popup] Calling saveArticle API...');
       await saveArticle(articleData, token);
-      console.log('✅ [Popup] Article saved successfully!');
       setStatus('saved');
     } catch (error) {
-      console.error('❌ [Popup] Save failed:', error);
+      console.error('[Popup] Save failed:', error);
       setStatus('error');
       setErrorMessage((error as Error).message);
     }

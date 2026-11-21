@@ -16,20 +16,32 @@ const manifest = targetBrowser === 'firefox'
     : chromeManifest
 
 // https://vite.dev/config/
-export default defineConfig({
-  server: {
-    port: 5200,
-    strictPort: true,
-    hmr: {
+export default defineConfig(({ command }) => {
+  const isBuild = command === 'build';
+  const resolvedManifest = isBuild
+    ? {
+        ...manifest,
+        content_security_policy: {
+          extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+        },
+      }
+    : manifest;
+
+  return {
+    server: {
       port: 5200,
+      strictPort: true,
+      hmr: {
+        port: 5200,
+      },
     },
-  },
-  build: {
-    outDir: `dist/${targetBrowser}`,
-    emptyOutDir: true,
-  },
-  plugins: [
-    react(),
-    crx({ manifest }),
-  ],
+    build: {
+      outDir: `dist/${targetBrowser}`,
+      emptyOutDir: true,
+    },
+    plugins: [
+      react(),
+      crx({ manifest: resolvedManifest }),
+    ],
+  };
 })
